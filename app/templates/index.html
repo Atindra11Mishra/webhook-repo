@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Git Events Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .events-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .refresh-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .event-count {
+            background: #f8f9fa;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            color: #666;
+        }
+
+        .events-list {
+            display: grid;
+            gap: 20px;
+        }
+
+        .event-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            border-left: 5px solid;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .event-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1));
+            border-radius: 50%;
+            transform: translate(30px, -30px);
+        }
+
+        .event-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+        .event-card.push {
+            border-left-color: #28a745;
+        }
+
+        .event-card.pull_request {
+            border-left-color: #007bff;
+        }
+
+        .event-card.merge {
+            border-left-color: #6f42c1;
+        }
+
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .event-type {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .event-type.push {
+            background: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+        }
+
+        .event-type.pull_request {
+            background: rgba(0, 123, 255, 0.1);
+            color: #007bff;
+        }
+
+        .event-type.merge {
+            background: rgba(111, 66, 193, 0.1);
+            color: #6f42c1;
+        }
+
+        .event-icon {
+            width: 16px;
+            height: 16px;
+        }
+
+        .event-time {
+            color: #666;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .event-message {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .event-details {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .event-detail {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .detail-icon {
+            width: 14px;
+            height: 14px;
+        }
+
+        .author-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .branch-name {
+            background: #f8f9fa;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: #999;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .events-container {
+                padding: 20px;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .event-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Git Events Dashboard</h1>
+            <p>Real-time repository activity monitoring</p>
+        </div>
+
+        <div class="events-container">
+            <div class="controls">
+                <div class="event-count" id="eventCount">Loading events...</div>
+                <button class="refresh-btn" onclick="loadEvents()">
+                    🔄 Refresh Events
+                </button>
+            </div>
+
+            <div id="eventsList" class="events-list">
+                <div class="loading">
+                    <h3>Loading events...</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // SVG Icons
+        const icons = {
+            push: `<svg class="event-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>`,
+            pull_request: `<svg class="event-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M7 12v3a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1z"/>
+                <path d="M7 5V2a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v3"/>
+            </svg>`,
+            merge: `<svg class="event-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 3l4 8 5-8M5 21l6.5-18L18 21"/>
+            </svg>`,
+            user: `<svg class="detail-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>`,
+            branch: `<svg class="detail-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6 2c-1.1 0-2 .9-2 2 0 .74.4 1.38 1 1.72v12.56c-.6.34-1 .98-1 1.72 0 1.1.9 2 2 2s2-.9 2-2c0-.74-.4-1.38-1-1.72V13h2c3.31 0 6-2.69 6-6V5.72c.6-.34 1-.98 1-1.72 0-1.1-.9-2-2-2s-2 .9-2 2c0 .74.4 1.38 1 1.72V7c0 2.21-1.79 4-4 4H7V5.72c.6-.34 1-.98 1-1.72 0-1.1-.9-2-2-2z"/>
+            </svg>`
+        };
+
+        async function loadEvents() {
+            const eventsList = document.getElementById('eventsList');
+            const eventCount = document.getElementById('eventCount');
+            
+            try {
+                eventsList.innerHTML = '<div class="loading"><h3>Loading events...</h3></div>';
+                
+                const response = await fetch('/webhook/events/latest');
+                const events = await response.json();
+                
+                if (events.length === 0) {
+                    eventsList.innerHTML = `
+                        <div class="empty-state">
+                            <h3>No events yet</h3>
+                            <p>Repository events will appear here as they happen</p>
+                        </div>
+                    `;
+                    eventCount.textContent = 'No events';
+                    return;
+                }
+                
+                eventCount.textContent = `${events.length} event${events.length !== 1 ? 's' : ''}`;
+                
+                eventsList.innerHTML = events.map(event => `
+                    <div class="event-card ${event.type}">
+                        <div class="event-header">
+                            <div class="event-type ${event.type}">
+                                ${icons[event.type] || ''}
+                                ${event.type.replace('_', ' ')}
+                            </div>
+                            <div class="event-time">${event.timestamp}</div>
+                        </div>
+                        
+                        <div class="event-message">${event.message}</div>
+                        
+                        <div class="event-details">
+                            <div class="event-detail">
+                                ${icons.user}
+                                <span class="author-name">${event.author}</span>
+                            </div>
+                            ${event.branch ? `
+                                <div class="event-detail">
+                                    ${icons.branch}
+                                    <span class="branch-name">${event.branch}</span>
+                                </div>
+                            ` : ''}
+                            ${event.from_branch && event.to_branch ? `
+                                <div class="event-detail">
+                                    ${icons.branch}
+                                    <span class="branch-name">${event.from_branch}</span>
+                                    →
+                                    <span class="branch-name">${event.to_branch}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error loading events:', error);
+                eventsList.innerHTML = `
+                    <div class="empty-state">
+                        <h3>Error loading events</h3>
+                        <p>Please try refreshing the page</p>
+                    </div>
+                `;
+                eventCount.textContent = 'Error';
+            }
+        }
+
+        // Load events when page loads
+        document.addEventListener('DOMContentLoaded', loadEvents);
+        
+        // Auto-refresh every 30 seconds
+        setInterval(loadEvents, 30000);
+    </script>
+</body>
+</html>
