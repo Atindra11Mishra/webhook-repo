@@ -44,4 +44,15 @@ POST http://127.0.0.1:5000/webhook/receiver
 
 You need to use this as the base and setup the flask app. Integrate this with MongoDB (commented at `app/extensions.py`)
 
+✅ GitHub Webhook Endpoint
+
+Set this endpoint in your GitHub repository webhook settings:
+POST http://<your-domain-or-ngrok-url>/webhook/receiver
+
+
+✅ Dashboard (UI)
+You can view the stored events in a browser at:
+GET http://127.0.0.1:5000/webhook/
+
+
 *******************
